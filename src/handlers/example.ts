@@ -5,7 +5,10 @@
  * You can use this as a template for implementing the required endpoints.
  */
 
+import { z } from "zod";
+
 import { createStorage } from '../storage/index.js';
+import { CreateItemSchema } from '../schemas/item.schema.js';
 
 const storage = createStorage();
 
@@ -35,14 +38,19 @@ export async function getItemHandler(id: string) {
 
 export async function createItemHandler(data: any) {
   try {
-    // TODO: Add validation using Zod
-    const item = await storage.createItem(data);
+    // Validate using Zod
+    const validCreateItemRequest = CreateItemSchema.parse(data);
+    console.log(validCreateItemRequest);
+    const item = await storage.createItem(validCreateItemRequest);
 
     return {
       statusCode: 201,
       body: item,
     };
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { statusCode: 400, body: { errors: error.flatten().fieldErrors } };
+    }
     console.error('Error creating item:', error);
     return {
       statusCode: 500,
