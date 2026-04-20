@@ -6,7 +6,7 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { getItemHandler, createItemHandler } from './handlers/example.js';
+import { getItemHandler, createItemHandler, updateItemHandler } from './handlers/example.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -44,6 +44,9 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     } else if (method === 'GET' && url?.startsWith('/api/items/')) {
       const id = url.split('/').pop();
       result = await getItemHandler(id!);
+    } else if (method === 'PUT' && url?.startsWith('/api/items/')) {
+      const id = url.split('/').pop();
+      result = await updateItemHandler(id!, parsedBody);
     } else {
       result = {
         statusCode: 404,

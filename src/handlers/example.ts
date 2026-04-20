@@ -8,18 +8,29 @@
 import { z } from "zod";
 
 import { createStorage } from '../storage/index.js';
-import { CreateItemSchema } from '../schemas/item.schema.js';
+import { CreateItemSchema, IdSchema, UpdateItemSchema } from '../schemas/item.schema.js';
 
 const storage = createStorage();
 
 export async function getItemHandler(id: string) {
   try {
-    const item = await storage.getItem(id);
+    // Validate ID is UUID
+    const validation = IdSchema.safeParse(id);
+
+    if (!validation.success) {
+      return {
+        statusCode: 400,
+        body: { error: validation.error.errors[0].message },
+      };
+    }
+
+    const validId = validation.data
+    const item = await storage.getItem(validId);
 
     if (!item) {
       return {
         statusCode: 404,
-        body: { error: 'Item not found' },
+        body: { error: `Item with ${validId} not found` },
       };
     }
 
@@ -28,7 +39,7 @@ export async function getItemHandler(id: string) {
       body: item,
     };
   } catch (error) {
-    console.error('Error getting item:', error);
+    console.error(`[getItemHandler] Error for ID: ${validId}`, error);
     return {
       statusCode: 500,
       body: { error: 'Internal server error' },
@@ -38,9 +49,8 @@ export async function getItemHandler(id: string) {
 
 export async function createItemHandler(data: any) {
   try {
-    // Validate using Zod
+    // Validate item request schema
     const validCreateItemRequest = CreateItemSchema.parse(data);
-    console.log(validCreateItemRequest);
     const item = await storage.createItem(validCreateItemRequest);
 
     return {
@@ -51,7 +61,43 @@ export async function createItemHandler(data: any) {
     if (error instanceof z.ZodError) {
       return { statusCode: 400, body: { errors: error.flatten().fieldErrors } };
     }
-    console.error('Error creating item:', error);
+    console.error('[createItemHandler] Error creating item', error);
+    return {
+      statusCode: 500,
+      body: { error: 'Internal server error' },
+    };
+  }
+}
+
+export async function updateItemHandler(id: string, data: any) {
+  try {
+    // Validate ID is UUID 
+    const idValidation = IdSchema.safeParse(id);
+    if (!idValidation.success) {
+      return {
+        statusCode: 400,
+        body: { error: idValidation.error.errors[0].message },
+      };
+    }
+
+    // Validate item request schema
+    const dataValidation = UpdateItemSchema.safeParse(data);
+    if (!dataValidation.success) {
+      return {
+        statusCode: 400,
+        body: { error: dataValidation.error.flatten().fieldErrors },
+      };
+    }
+
+    const validId = idValidation.data
+    const item = await storage.updateItem(validId, dataValidation.data)
+
+    return {
+      statusCode: 201,
+      body: item,
+    };
+  } catch (error) {
+    console.error(`[updateItemHandler] Error updating item for ID: ${validId}`, error);
     return {
       statusCode: 500,
       body: { error: 'Internal server error' },
@@ -60,7 +106,6 @@ export async function createItemHandler(data: any) {
 }
 
 // TODO: Implement other handlers:
-// - updateItemHandler
 // - listItemsHandler
 // - createVersionHandler
 // - getAuditTrailHandler
