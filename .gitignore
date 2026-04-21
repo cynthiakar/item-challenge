@@ -35,7 +35,9 @@ yarn-error.log*
 # Testing
 coverage/
 
-# Terraform
-.terraform/
+# Ignore all .terraform directories recursively
+**/.terraform/*
+
+# Ignore specific state files if you aren't using a remote backend
 *.tfstate
 *.tfstate.*
