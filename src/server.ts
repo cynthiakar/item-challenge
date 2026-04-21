@@ -6,9 +6,13 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { getItemHandler, createItemHandler, updateItemHandler } from './handlers/example.js';
+import { createStorage } from './storage/index.js';
+import { getItemHandler } from './handlers/getItem.js';
+import { createItemHandler } from './handlers/createItem.js';
+import { updateItemHandler } from './handlers/updateItem.js';
 
 const PORT = process.env.PORT || 3000;
+const storage = createStorage();
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   const { method, url } = req;
@@ -38,15 +42,15 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
     // Example routes - implement your own routing logic
     if (method === 'GET' && url === '/api/items/test') {
-      result = await getItemHandler('test');
+      result = await getItemHandler(storage, 'test');
     } else if (method === 'POST' && url === '/api/items') {
-      result = await createItemHandler(parsedBody);
+      result = await createItemHandler(storage, parsedBody);
     } else if (method === 'GET' && url?.startsWith('/api/items/')) {
       const id = url.split('/').pop();
-      result = await getItemHandler(id!);
+      result = await getItemHandler(storage, id!);
     } else if (method === 'PUT' && url?.startsWith('/api/items/')) {
       const id = url.split('/').pop();
-      result = await updateItemHandler(id!, parsedBody);
+      result = await updateItemHandler(storage, id!, parsedBody);
     } else {
       result = {
         statusCode: 404,
